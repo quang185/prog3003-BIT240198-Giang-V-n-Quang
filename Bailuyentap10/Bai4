@@ -1,0 +1,41 @@
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
+import javafx.stage.Stage;
+
+public class Calculator extends Application{
+
+    public void start(Stage stage){
+
+        TextField a = new TextField();
+        TextField b = new TextField();
+        Label result = new Label("Kết quả");
+        Button btn = new Button("Tính tổng");
+
+        btn.setOnAction(e->{
+            try{
+                double x = Double.parseDouble(a.getText());
+                double y = Double.parseDouble(b.getText());
+                result.setText("Kết quả: "+(x+y));
+            }catch(Exception ex){
+                result.setText("Lỗi!");
+            }
+        });
+
+        GridPane g = new GridPane();
+        g.add(new Label("Số thứ nhất"),0,0);
+        g.add(a,1,0);
+        g.add(new Label("Số thứ hai"),0,1);
+        g.add(b,1,1);
+        g.add(btn,0,2);
+        g.add(result,1,2);
+
+        stage.setScene(new Scene(g,300,200));
+        stage.show();
+    }
+
+    public static void main(String[] args){
+        launch();
+    }
+}
