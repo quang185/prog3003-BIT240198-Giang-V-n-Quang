@@ -1,0 +1,116 @@
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+import org.java_websocket.server.WebSocketServer;
+import org.java_websocket.WebSocket;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.handshake.ServerHandshake;
+
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.util.HashSet;
+import java.util.Set;
+
+public class ChatApp extends Application {
+
+    // ===== SERVER =====
+    static class ChatServer extends WebSocketServer {
+        private static Set<WebSocket> clients = new HashSet<>();
+
+        public ChatServer(int port) {
+            super(new InetSocketAddress(port));
+        }
+
+        @Override
+        public void onOpen(WebSocket conn, ClientHandshake handshake) {
+            clients.add(conn);
+            System.out.println("Client connected");
+        }
+
+        @Override
+        public void onClose(WebSocket conn, int code, String reason, boolean remote) {
+            clients.remove(conn);
+            System.out.println("Client disconnected");
+        }
+
+        @Override
+        public void onMessage(WebSocket conn, String message) {
+            for (WebSocket client : clients) {
+                if (client != conn) {
+                    client.send(message);
+                }
+            }
+        }
+
+        @Override
+        public void onError(WebSocket conn, Exception ex) {
+            ex.printStackTrace();
+        }
+
+        @Override
+        public void onStart() {
+            System.out.println("Server started");
+        }
+    }
+
+    // ===== CLIENT =====
+    private TextArea chatArea = new TextArea();
+    private TextField inputField = new TextField();
+    private WebSocketClient client;
+
+    @Override
+    public void start(Stage stage) throws Exception {
+
+        // Start server (chạy local luôn)
+        ChatServer server = new ChatServer(8080);
+        server.start();
+
+        // Kết nối client
+        client = new WebSocketClient(new URI("ws://localhost:8080")) {
+            @Override
+            public void onOpen(ServerHandshake handshakedata) {
+                chatArea.appendText("Connected\n");
+            }
+
+            @Override
+            public void onMessage(String message) {
+                chatArea.appendText("User: " + message + "\n");
+            }
+
+            @Override
+            public void onClose(int code, String reason, boolean remote) {
+                chatArea.appendText("Disconnected\n");
+            }
+
+            @Override
+            public void onError(Exception ex) {
+                ex.printStackTrace();
+            }
+        };
+
+        client.connect();
+
+        Button sendButton = new Button("Send");
+        sendButton.setOnAction(e -> {
+            String msg = inputField.getText();
+            client.send(msg);
+            chatArea.appendText("Me: " + msg + "\n");
+            inputField.clear();
+        });
+
+        VBox root = new VBox(chatArea, inputField, sendButton);
+        Scene scene = new Scene(root, 400, 300);
+
+        stage.setTitle("Chat App");
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    public static void main(String[] args) {
+        launch();
+    }
+}
